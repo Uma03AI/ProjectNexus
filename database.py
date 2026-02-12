@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MONGO_URL = os.getenv("MONGO_URL")
-DATABASE_NAME = os.getenv("ProjectNexus")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 client = AsyncIOMotorClient(MONGO_URL)
-database = client["ProjectNexus"]
+database = client["DATABASE_NAME"]
 
 # Example collection
 users_collection = database.get_collection("users")

@@ -26,9 +26,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def serve_frontend():
     return FileResponse("static/index.html")
 
-@app.get("/ai")
+@app.get("/ai/")
 async def serve_ai():
     return FileResponse("static/ai.html")
+
+@app.get("/interview-chatbot/")
+async def serve_interview():
+    return FileResponse("static/interview-chatbot.html")
 
 
 # Create user

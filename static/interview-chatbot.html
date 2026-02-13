@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Interview Coach</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:wght@600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    .heading-font { font-family: 'Fraunces', serif; }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    
+    .animate-fade-in { animation: fadeInUp 0.5s ease-out forwards; }
+    .animate-delay-1 { animation-delay: 0.1s; }
+    .animate-delay-2 { animation-delay: 0.2s; }
+    .animate-delay-3 { animation-delay: 0.3s; }
+    
+    .typing-dot { animation: pulse-dot 1.4s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    .message-bubble {
+      position: relative;
+      max-width: 85%;
+    }
+    
+    .coach-bubble::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 12px;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-right-color: #1e293b;
+      border-left: 0;
+    }
+    
+    .user-bubble::before {
+      content: '';
+      position: absolute;
+      right: -8px;
+      top: 12px;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-left-color: #0d9488;
+      border-right: 0;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .gradient-border {
+      background: linear-gradient(135deg, #0d9488 0%, #6366f1 100%);
+      padding: 2px;
+      border-radius: 16px;
+    }
+    
+    .gradient-border-inner {
+      background: #0f172a;
+      border-radius: 14px;
+    }
+    
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+    
+    .input-focus:focus {
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+    }
+    
+    .score-ring {
+      transform: rotate(-90deg);
+    }
+    
+    .progress-fill {
+      transition: stroke-dashoffset 1s ease-out;
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full bg-slate-900 text-white overflow-hidden">
+  <div id="app-container" class="h-full w-full flex flex-col"><!-- Header -->
+   <header class="flex-shrink-0 px-4 py-3 border-b border-slate-700/50 glass-effect">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+     <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-indigo-500 flex items-center justify-center">
+       <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+       </svg>
+      </div>
+      <div>
+       <h1 id="app-title" class="heading-font text-lg font-bold text-white">AI Interview Coach</h1>
+       <p id="welcome-text" class="text-xs text-slate-400">Your personal mock interview assistant</p>
+      </div>
+     </div>
+     <div class="flex items-center gap-2"><span id="session-status" class="px-3 py-1 text-xs font-medium rounded-full bg-teal-500/20 text-teal-400 border border-teal-500/30"> Ready to Start </span> <button id="new-session-btn" class="p-2 rounded-lg hover:bg-slate-700/50 transition-colors" title="New Session">
+       <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+       </svg></button>
+     </div>
+    </div>
+   </header><!-- Main Chat Area -->
+   <main class="flex-1 overflow-hidden flex flex-col">
+    <div id="chat-container" class="flex-1 overflow-y-auto px-4 py-4">
+     <div id="messages" class="max-w-4xl mx-auto space-y-4"><!-- Messages will be inserted here -->
+     </div>
+    </div><!-- Input Area -->
+    <div class="flex-shrink-0 px-4 py-4 border-t border-slate-700/50 glass-effect">
+     <div class="max-w-4xl mx-auto">
+      <div id="input-area" class="flex gap-3">
+       <div class="flex-1 gradient-border">
+        <div class="gradient-border-inner"><textarea id="user-input" rows="1" placeholder="Type your response..." class="w-full px-4 py-3 bg-transparent text-white placeholder-slate-500 resize-none focus:outline-none input-focus rounded-xl" style="max-height: 120px;"></textarea>
+        </div>
+       </div><button id="send-btn" class="px-5 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"> <span>Send</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg></button>
+      </div><!-- Quick Actions -->
+      <div id="quick-actions" class="mt-3 flex flex-wrap gap-2 hidden"><!-- Quick action buttons will be inserted here -->
+      </div>
+     </div>
+    </div>
+   </main><!-- Results Modal -->
+   <div id="results-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[90%] overflow-y-auto border border-slate-700">
+     <div class="p-6">
+      <div class="text-center mb-6">
+       <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-indigo-500 mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+        </svg>
+       </div>
+       <h2 class="heading-font text-2xl font-bold text-white">Interview Complete!</h2>
+       <p class="text-slate-400 mt-1">Here's your performance summary</p>
+      </div><!-- Score Ring -->
+      <div class="flex justify-center mb-6">
+       <div class="relative w-32 h-32">
+        <svg class="w-full h-full score-ring" viewbox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#334155" stroke-width="8" /> <circle id="score-circle" cx="50" cy="50" r="45" fill="none" stroke="url(#scoreGradient)" stroke-width="8" stroke-linecap="round" class="progress-fill" stroke-dasharray="283" stroke-dashoffset="283" /> <defs>
+          <lineargradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+           <stop offset="0%" stop-color="#0d9488" />
+           <stop offset="100%" stop-color="#6366f1" />
+          </lineargradient>
+         </defs>
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center"><span id="score-value" class="text-3xl font-bold text-white">0</span> <span class="text-slate-400 text-lg">/10</span>
+        </div>
+       </div>
+      </div><!-- Results Content -->
+      <div id="results-content" class="space-y-4"><!-- Results will be inserted here -->
+      </div><!-- Actions -->
+      <div class="mt-6 flex gap-3"><button id="close-results" class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-colors"> Close </button> <button id="start-new" class="flex-1 px-4 py-3 bg-gradient-to-r from-teal-500 to-indigo-500 hover:from-teal-400 hover:to-indigo-400 text-white font-medium rounded-xl transition-colors"> Start New Interview </button>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Default configuration
+    const defaultConfig = {
+      app_title: 'AI Interview Coach',
+      welcome_message: 'Your personal mock interview assistant',
+      background_color: '#0f172a',
+      surface_color: '#1e293b',
+      text_color: '#f8fafc',
+      primary_action_color: '#0d9488',
+      secondary_action_color: '#6366f1',
+      font_family: 'DM Sans',
+      font_size: 16
+    };
+
+    let config = { ...defaultConfig };
+    let sessions = [];
+    let currentSession = null;
+    let interviewState = {
+      phase: 'gathering', // gathering, interviewing, feedback, complete
+      questionIndex: 0,
+      userProfile: {
+        jobRole: '',
+        companyType: '',
+        experienceLevel: '',
+        skills: '',
+        projects: ''
+      },
+      interviewHistory: [],
+      currentQuestionData: null
+    };
+
+    // Interview questions and logic
+    const gatheringQuestions = [
+      {
+        id: 'jobRole',
+        question: "Hello! I'm your AI Interview Coach. Let's prepare you for success! 🎯\n\nFirst, **what job role/position are you applying for?**\n\n_(e.g., Frontend Developer, Data Analyst, Product Manager, Marketing Executive)_",
+        placeholder: "e.g., Software Engineer, Data Scientist...",
+        validate: (val) => val.length >= 2
+      },
+      {
+        id: 'companyType',
+        question: "Great choice! Now, **what type of company is it?**",
+        quickOptions: ['Startup', 'MNC (Large Corporation)', 'Product-based Company', 'Service-based Company', 'Government/PSU'],
+        placeholder: "Select or type...",
+        validate: (val) => val.length >= 2
+      },
+      {
+        id: 'experienceLevel',
+        question: "Perfect! **What is your experience level?**",
+        quickOptions: ['Fresher (0-1 years)', '1-2 years experience', '3-5 years experience', '5+ years (Senior)', '10+ years (Expert)'],
+        placeholder: "Select your experience level...",
+        validate: (val) => val.length >= 2
+      },
+      {
+        id: 'skills',
+        question: "Excellent! **What skills and technologies do you know?**\n\n_List your technical skills, tools, frameworks, and soft skills._",
+        placeholder: "e.g., JavaScript, React, Python, SQL, Communication, Leadership...",
+        validate: (val) => val.length >= 5
+      },
+      {
+        id: 'projects',
+        question: "Almost there! **Do you have any projects?**\n\n_Briefly describe 1-2 significant projects you've worked on, including the technologies used and your role._",
+        placeholder: "Describe your projects or type 'No projects yet'...",
+        validate: (val) => val.length >= 3
+      }
+    ];
+
+    // Question templates based on role and experience
+    function generateInterviewQuestions(profile) {
+      const questions = [];
+      const isExperienced = profile.experienceLevel.toLowerCase().includes('3') || 
+                           profile.experienceLevel.toLowerCase().includes('5') ||
+                           profile.experienceLevel.toLowerCase().includes('senior') ||
+                           profile.experienceLevel.toLowerCase().includes('expert');
+      
+      // Opening question
+      questions.push({
+        type: 'hr',
+        question: `Welcome! Let's begin the interview for the **${profile.jobRole}** position.\n\n**Tell me about yourself and why you're interested in this role.**`,
+        tips: 'Structure your answer: Present → Past → Future. Keep it under 2 minutes.',
+        goodAnswer: `A strong answer covers: 1) Brief intro with current situation, 2) Relevant experience/skills, 3) Why this role excites you, 4) What value you bring.`
+      });
+
+      // Technical questions based on skills
+      const skills = profile.skills.toLowerCase();
+      
+      if (skills.includes('javascript') || skills.includes('react') || skills.includes('frontend') || skills.includes('web')) {
+        questions.push({
+          type: 'technical',
+          question: "**Technical Question:** Can you explain the difference between `let`, `const`, and `var` in JavaScript? When would you use each?",
+          tips: 'Focus on scope, hoisting, and reassignment differences.',
+          goodAnswer: '`var` is function-scoped and hoisted, `let` is block-scoped and can be reassigned, `const` is block-scoped and cannot be reassigned. Use `const` by default, `let` when reassignment is needed, avoid `var`.'
+        });
+      }
+      
+      if (skills.includes('python') || skills.includes('data') || skills.includes('machine learning')) {
+        questions.push({
+          type: 'technical',
+          question: "**Technical Question:** What are Python decorators and how would you use them? Can you give an example?",
+          tips: 'Explain the concept, then provide a practical use case.',
+          goodAnswer: 'Decorators are functions that modify other functions. They use @syntax and are useful for logging, authentication, caching. Example: @login_required for route protection.'
+        });
+      }
+      
+      if (skills.includes('sql') || skills.includes('database')) {
+        questions.push({
+          type: 'technical',
+          question: "**Technical Question:** Explain the difference between INNER JOIN, LEFT JOIN, and RIGHT JOIN with an example.",
+          tips: 'Use a relatable example like customers and orders tables.',
+          goodAnswer: 'INNER JOIN returns matching rows from both tables. LEFT JOIN returns all left table rows + matches. RIGHT JOIN returns all right table rows + matches.'
+        });
+      }
+
+      // Behavioral questions
+      questions.push({
+        type: 'behavioral',
+        question: "**Behavioral Question:** Tell me about a time when you faced a challenging deadline. How did you handle it?",
+        tips: 'Use the STAR method: Situation, Task, Action, Result.',
+        goodAnswer: 'Describe a specific situation, your responsibility, concrete actions you took, and measurable results. Show problem-solving and time management skills.'
+      });
+
+      questions.push({
+        type: 'behavioral',
+        question: "**Behavioral Question:** Describe a situation where you had to work with a difficult team member. How did you handle it?",
+        tips: 'Focus on your communication and conflict resolution skills.',
+        goodAnswer: 'Show empathy, active listening, and finding common ground. Emphasize the positive outcome and what you learned.'
+      });
+
+      // Situational questions
+      questions.push({
+        type: 'situational',
+        question: `**Situational Question:** If you joined our team and found that the existing codebase/process has significant issues, how would you approach improving it?`,
+        tips: 'Show diplomacy, initiative, and practical problem-solving.',
+        goodAnswer: 'First understand the context and reasons, then prioritize issues, propose incremental improvements, get buy-in from the team, and document changes.'
+      });
+
+      // Experience-specific questions
+      if (isExperienced) {
+        questions.push({
+          type: 'leadership',
+          question: "**Leadership Question:** How do you mentor junior team members while managing your own workload?",
+          tips: 'Balance between delegation, guidance, and personal productivity.',
+          goodAnswer: 'Set aside dedicated time for mentoring, create documentation, use pair programming, delegate appropriately, and set clear expectations.'
+        });
+      }
+
+      // Project-based question
+      if (profile.projects && profile.projects.toLowerCase() !== 'no projects yet') {
+        questions.push({
+          type: 'project',
+          question: `**Project Discussion:** You mentioned your projects. Walk me through the most challenging technical problem you solved in your projects.`,
+          tips: 'Describe the problem, your approach, alternatives considered, and the solution.',
+          goodAnswer: 'Structure: Problem statement → Impact → Your approach → Technical solution → Results/Learnings'
+        });
+      }
+
+      // Closing questions
+      questions.push({
+        type: 'hr',
+        question: "**Final Question:** Where do you see yourself in 5 years, and how does this role fit into your career goals?",
+        tips: 'Show ambition while being realistic. Connect your goals to the company.',
+        goodAnswer: 'Demonstrate growth mindset, alignment with role, and long-term commitment. Show you\'ve researched the company\'s growth trajectory.'
+      });
+
+      questions.push({
+        type: 'closing',
+        question: "**Closing:** Do you have any questions for me about the role or the company?",
+        tips: 'Always have 2-3 thoughtful questions prepared.',
+        goodAnswer: 'Good questions: team structure, success metrics, biggest challenges, growth opportunities, company culture, next steps in the process.'
+      });
+
+      return questions;
+    }
+
+    function generateFeedback(answer, questionData, profile) {
+      const answerLength = answer.length;
+      const hasStructure = answer.includes('first') || answer.includes('then') || answer.includes('finally') || 
+                         answer.includes('1)') || answer.includes('2)') || answer.includes('-');
+      const hasSpecifics = answer.match(/\d+/) || answer.includes('example') || answer.includes('specifically');
+      
+      let score = 5;
+      let strengths = [];
+      let improvements = [];
+      
+      // Length analysis
+      if (answerLength > 200) {
+        score += 1;
+        strengths.push("Good detail in your response");
+      } else if (answerLength < 50) {
+        score -= 1;
+        improvements.push("Try to elaborate more on your answers");
+      }
+      
+      // Structure analysis
+      if (hasStructure) {
+        score += 1;
+        strengths.push("Well-structured response");
+      } else {
+        improvements.push("Consider using a structured approach (STAR method for behavioral questions)");
+      }
+      
+      // Specificity
+      if (hasSpecifics) {
+        score += 1;
+        strengths.push("Good use of specific examples/numbers");
+      } else {
+        improvements.push("Add specific examples or metrics to strengthen your answer");
+      }
+      
+      // Question type specific feedback
+      if (questionData.type === 'technical') {
+        const keywords = ['because', 'reason', 'example', 'such as', 'for instance'];
+        if (keywords.some(kw => answer.toLowerCase().includes(kw))) {
+          score += 1;
+          strengths.push("Good technical explanation with reasoning");
+        } else {
+          improvements.push("Explain the 'why' behind technical concepts");
+        }
+      }
+      
+      if (questionData.type === 'behavioral') {
+        if (answer.toLowerCase().includes('result') || answer.toLowerCase().includes('outcome') || answer.toLowerCase().includes('learned')) {
+          score += 1;
+          strengths.push("Good focus on results and learnings");
+        } else {
+          improvements.push("Always conclude with the result or what you learned");
+        }
+      }
+      
+      score = Math.min(10, Math.max(1, score));
+      
+      return {
+        score,
+        strengths: strengths.length > 0 ? strengths : ["You provided a response - that's a good start!"],
+        improvements: improvements.length > 0 ? improvements : ["Keep practicing for even better responses"],
+        sampleAnswer: questionData.goodAnswer,
+        tip: questionData.tips
+      };
+    }
+
+    function generateFinalResults(history, profile) {
+      const scores = history.filter(h => h.feedback).map(h => h.feedback.score);
+      const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 5;
+      
+      const allStrengths = [...new Set(history.flatMap(h => h.feedback?.strengths || []))].slice(0, 4);
+      const allImprovements = [...new Set(history.flatMap(h => h.feedback?.improvements || []))].slice(0, 4);
+      
+      // Topics to revise based on weak areas
+      const topicsToRevise = [];
+      if (avgScore < 7) {
+        topicsToRevise.push("STAR Method for behavioral questions");
+        topicsToRevise.push("Technical fundamentals of your core skills");
+      }
+      topicsToRevise.push("Common " + profile.jobRole + " interview questions");
+      topicsToRevise.push("Company research and culture fit questions");
+      
+      // Project suggestions
+      const projectIdeas = [];
+      const skills = profile.skills.toLowerCase();
+      
+      if (skills.includes('web') || skills.includes('frontend') || skills.includes('react')) {
+        projectIdeas.push("Build a portfolio website with interactive elements and animations");
+        projectIdeas.push("Create a full-stack application with authentication (e.g., task manager, blog platform)");
+      }
+      if (skills.includes('python') || skills.includes('data')) {
+        projectIdeas.push("Build a data dashboard with real-time visualizations");
+        projectIdeas.push("Create an ML model for a real-world problem (e.g., sentiment analysis, price prediction)");
+      }
+      if (skills.includes('mobile') || skills.includes('android') || skills.includes('ios')) {
+        projectIdeas.push("Develop a utility app that solves a daily problem");
+        projectIdeas.push("Create a social feature integration project");
+      }
+      if (projectIdeas.length === 0) {
+        projectIdeas.push("Build a project showcasing your primary skill");
+        projectIdeas.push("Contribute to open-source projects in your domain");
+        projectIdeas.push("Create a case study solving a business problem");
+      }
+      
+      // 2-week roadmap
+      const roadmap = [
+        { week: "Week 1", tasks: [
+          "Day 1-2: Review and strengthen technical fundamentals",
+          "Day 3-4: Practice STAR method with 5 behavioral scenarios",
+          "Day 5-6: Research target companies thoroughly",
+          "Day 7: Mock interview practice"
+        ]},
+        { week: "Week 2", tasks: [
+          "Day 1-2: Work on identified weak areas",
+          "Day 3-4: Start/continue a portfolio project",
+          "Day 5-6: Practice communication and presentation",
+          "Day 7: Final mock interview and confidence building"
+        ]}
+      ];
+      
+      return {
+        overallScore: parseFloat(avgScore),
+        strengths: allStrengths,
+        improvements: allImprovements,
+        topicsToRevise: topicsToRevise.slice(0, 4),
+        projectIdeas: projectIdeas.slice(0, 3),
+        roadmap
+      };
+    }
+
+    // UI Functions
+    function addMessage(content, isUser = false, isTyping = false) {
+      const messagesContainer = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`;
+      
+      if (isTyping) {
+        messageDiv.id = 'typing-indicator';
+        messageDiv.innerHTML = `
+          <div class="message-bubble coach-bubble bg-slate-800 rounded-2xl px-5 py-4 border border-slate-700">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-teal-400 typing-dot"></div>
+              <div class="w-2 h-2 rounded-full bg-teal-400 typing-dot"></div>
+              <div class="w-2 h-2 rounded-full bg-teal-400 typing-dot"></div>
+            </div>
+          </div>
+        `;
+      } else {
+        const bubbleClass = isUser ? 'user-bubble bg-teal-600' : 'coach-bubble bg-slate-800 border border-slate-700';
+        messageDiv.innerHTML = `
+          <div class="message-bubble ${bubbleClass} rounded-2xl px-5 py-4">
+            <div class="prose prose-invert prose-sm max-w-none">
+              ${formatMessage(content)}
+            </div>
+          </div>
+        `;
+      }
+      
+      messagesContainer.appendChild(messageDiv);
+      scrollToBottom();
+    }
+
+    function formatMessage(content) {
+      // Convert markdown-like syntax to HTML
+      return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-teal-400">$1</strong>')
+        .replace(/_(.*?)_/g, '<em class="text-slate-400">$1</em>')
+        .replace(/\n/g, '<br>')
+        .replace(/• /g, '<span class="text-teal-400 mr-2">•</span>');
+    }
+
+    function removeTypingIndicator() {
+      const indicator = document.getElementById('typing-indicator');
+      if (indicator) indicator.remove();
+    }
+
+    function scrollToBottom() {
+      const chatContainer = document.getElementById('chat-container');
+      setTimeout(() => {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }, 50);
+    }
+
+    function showQuickOptions(options) {
+      const quickActions = document.getElementById('quick-actions');
+      quickActions.innerHTML = '';
+      quickActions.classList.remove('hidden');
+      
+      options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'px-4 py-2 bg-slate-700/50 hover:bg-slate-600 text-sm text-slate-300 rounded-lg transition-colors border border-slate-600';
+        btn.textContent = option;
+        btn.onclick = () => {
+          document.getElementById('user-input').value = option;
+          quickActions.classList.add('hidden');
+          handleUserResponse();
+        };
+        quickActions.appendChild(btn);
+      });
+    }
+
+    function hideQuickOptions() {
+      document.getElementById('quick-actions').classList.add('hidden');
+    }
+
+    function updateSessionStatus(status) {
+      const statusEl = document.getElementById('session-status');
+      const statusMap = {
+        'gathering': { text: 'Gathering Info', class: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+        'interviewing': { text: 'Interview in Progress', class: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+        'feedback': { text: 'Reviewing Answers', class: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+        'complete': { text: 'Interview Complete', class: 'bg-green-500/20 text-green-400 border-green-500/30' }
+      };
+      
+      const config = statusMap[status] || statusMap['gathering'];
+      statusEl.textContent = config.text;
+      statusEl.className = `px-3 py-1 text-xs font-medium rounded-full border ${config.class}`;
+    }
+
+    function showTypingThenMessage(content, callback) {
+      addMessage('', false, true);
+      setTimeout(() => {
+        removeTypingIndicator();
+        addMessage(content, false);
+        if (callback) callback();
+      }, 800 + Math.random() * 400);
+    }
+
+    async function handleUserResponse() {
+      const input = document.getElementById('user-input');
+      const response = input.value.trim();
+      
+      if (!response) return;
+      
+      input.value = '';
+      hideQuickOptions();
+      addMessage(response, true);
+      
+      if (interviewState.phase === 'gathering') {
+        await handleGatheringPhase(response);
+      } else if (interviewState.phase === 'interviewing') {
+        await handleInterviewingPhase(response);
+      }
+    }
+
+    async function handleGatheringPhase(response) {
+      const currentQ = gatheringQuestions[interviewState.questionIndex];
+      
+      if (!currentQ.validate(response)) {
+        showTypingThenMessage("Please provide a more detailed response. " + currentQ.question);
+        return;
+      }
+      
+      // Save response
+      interviewState.userProfile[currentQ.id] = response;
+      interviewState.questionIndex++;
+      
+      if (interviewState.questionIndex < gatheringQuestions.length) {
+        // Ask next gathering question
+        const nextQ = gatheringQuestions[interviewState.questionIndex];
+        showTypingThenMessage(nextQ.question, () => {
+          if (nextQ.quickOptions) {
+            showQuickOptions(nextQ.quickOptions);
+          }
+          document.getElementById('user-input').placeholder = nextQ.placeholder || 'Type your response...';
+        });
+      } else {
+        // Transition to interview phase
+        interviewState.phase = 'interviewing';
+        interviewState.questionIndex = 0;
+        interviewState.interviewQuestions = generateInterviewQuestions(interviewState.userProfile);
+        updateSessionStatus('interviewing');
+        
+        const introMessage = `Excellent! I now have a good understanding of your profile:\n\n• **Role:** ${interviewState.userProfile.jobRole}\n• **Company Type:** ${interviewState.userProfile.companyType}\n• **Experience:** ${interviewState.userProfile.experienceLevel}\n\nLet's begin the mock interview! I'll ask you ${interviewState.interviewQuestions.length} questions covering technical, behavioral, and situational scenarios.\n\n**Remember:** Take your time, structure your answers, and be specific.\n\n---\n\n_Starting interview..._`;
+        
+        showTypingThenMessage(introMessage, () => {
+          setTimeout(() => {
+            askInterviewQuestion();
+          }, 1500);
+        });
+      }
+    }
+
+    async function handleInterviewingPhase(response) {
+      const currentQ = interviewState.interviewQuestions[interviewState.questionIndex];
+      
+      // Generate feedback
+      const feedback = generateFeedback(response, currentQ, interviewState.userProfile);
+      
+      // Store in history
+      interviewState.interviewHistory.push({
+        question: currentQ,
+        answer: response,
+        feedback
+      });
+      
+      // Show feedback
+      interviewState.phase = 'feedback';
+      updateSessionStatus('feedback');
+      
+      let feedbackMessage = `**📊 Feedback on your answer:**\n\n`;
+      feedbackMessage += `**Score:** ${feedback.score}/10\n\n`;
+      
+      feedbackMessage += `**✅ What you did well:**\n`;
+      feedback.strengths.forEach(s => feedbackMessage += `• ${s}\n`);
+      
+      feedbackMessage += `\n**📈 Areas to improve:**\n`;
+      feedback.improvements.forEach(i => feedbackMessage += `• ${i}\n`);
+      
+      feedbackMessage += `\n**💡 Pro Tip:** ${feedback.tip}\n\n`;
+      feedbackMessage += `**📝 Sample Strong Answer:**\n_${feedback.sampleAnswer}_`;
+      
+      showTypingThenMessage(feedbackMessage, () => {
+        interviewState.questionIndex++;
+        interviewState.phase = 'interviewing';
+        updateSessionStatus('interviewing');
+        
+        if (interviewState.questionIndex < interviewState.interviewQuestions.length) {
+          setTimeout(() => {
+            askInterviewQuestion();
+          }, 2000);
+        } else {
+          // Interview complete
+          setTimeout(() => {
+            completeInterview();
+          }, 1500);
+        }
+      });
+    }
+
+    function askInterviewQuestion() {
+      const q = interviewState.interviewQuestions[interviewState.questionIndex];
+      const questionNum = interviewState.questionIndex + 1;
+      const total = interviewState.interviewQuestions.length;
+      
+      const message = `**Question ${questionNum}/${total}** _(${q.type.charAt(0).toUpperCase() + q.type.slice(1)})_\n\n${q.question}`;
+      
+      showTypingThenMessage(message);
+    }
+
+    async function completeInterview() {
+      interviewState.phase = 'complete';
+      updateSessionStatus('complete');
+      
+      const results = generateFinalResults(interviewState.interviewHistory, interviewState.userProfile);
+      
+      const completeMessage = `🎉 **Congratulations! You've completed the mock interview!**\n\nI've analyzed all your responses and prepared a comprehensive feedback report. Click below to see your detailed results.\n\n_Your overall performance: ${results.overallScore}/10_`;
+      
+      showTypingThenMessage(completeMessage, () => {
+        showResultsModal(results);
+        saveSession(results);
+      });
+    }
+
+    function showResultsModal(results) {
+      const modal = document.getElementById('results-modal');
+      const content = document.getElementById('results-content');
+      
+      // Animate score
+      const scoreCircle = document.getElementById('score-circle');
+      const scoreValue = document.getElementById('score-value');
+      const circumference = 283;
+      const offset = circumference - (results.overallScore / 10) * circumference;
+      
+      setTimeout(() => {
+        scoreCircle.style.strokeDashoffset = offset;
+        animateValue(scoreValue, 0, results.overallScore, 1000);
+      }, 300);
+      
+      // Build content
+      content.innerHTML = `
+        <!-- Strengths -->
+        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+          <h3 class="font-semibold text-green-400 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Your Strengths
+          </h3>
+          <ul class="space-y-1 text-sm text-slate-300">
+            ${results.strengths.map(s => `<li>• ${s}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <!-- Improvements -->
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+          <h3 class="font-semibold text-amber-400 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            Areas to Improve
+          </h3>
+          <ul class="space-y-1 text-sm text-slate-300">
+            ${results.improvements.map(i => `<li>• ${i}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <!-- Topics to Revise -->
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+          <h3 class="font-semibold text-blue-400 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            Topics to Revise
+          </h3>
+          <ul class="space-y-1 text-sm text-slate-300">
+            ${results.topicsToRevise.map(t => `<li>• ${t}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <!-- Project Ideas -->
+        <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+          <h3 class="font-semibold text-purple-400 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            Project Ideas to Strengthen Resume
+          </h3>
+          <ul class="space-y-1 text-sm text-slate-300">
+            ${results.projectIdeas.map(p => `<li>• ${p}</li>`).join('')}
+          </ul>
+        </div>
+        
+        <!-- 2-Week Roadmap -->
+        <div class="bg-teal-500/10 border border-teal-500/30 rounded-xl p-4">
+          <h3 class="font-semibold text-teal-400 mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            2-Week Improvement Roadmap
+          </h3>
+          ${results.roadmap.map(week => `
+            <div class="mb-3 last:mb-0">
+              <h4 class="font-medium text-white text-sm mb-2">${week.week}</h4>
+              <ul class="space-y-1 text-xs text-slate-400">
+                ${week.tasks.map(task => `<li>• ${task}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      modal.classList.remove('hidden');
+    }
+
+    function hideResultsModal() {
+      document.getElementById('results-modal').classList.add('hidden');
+    }
+
+    function animateValue(element, start, end, duration) {
+      const range = end - start;
+      const startTime = performance.now();
+      
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const current = start + range * easeOut;
+        element.textContent = current.toFixed(1);
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+
+    async function saveSession(results) {
+      if (!window.dataSdk) return;
+      
+      if (sessions.length >= 999) {
+        console.warn('Maximum session limit reached');
+        return;
+      }
+      
+      const sessionData = {
+        session_id: Date.now().toString(),
+        job_role: interviewState.userProfile.jobRole,
+        company_type: interviewState.userProfile.companyType,
+        experience_level: interviewState.userProfile.experienceLevel,
+        skills: interviewState.userProfile.skills,
+        projects: interviewState.userProfile.projects,
+        interview_transcript: JSON.stringify(interviewState.interviewHistory.slice(0, 5)),
+        overall_score: results.overallScore,
+        created_at: new Date().toISOString()
+      };
+      
+      const result = await window.dataSdk.create(sessionData);
+      if (!result.isOk) {
+        console.error('Failed to save session');
+      }
+    }
+
+    function startNewSession() {
+      // Reset state
+      interviewState = {
+        phase: 'gathering',
+        questionIndex: 0,
+        userProfile: {
+          jobRole: '',
+          companyType: '',
+          experienceLevel: '',
+          skills: '',
+          projects: ''
+        },
+        interviewHistory: [],
+        currentQuestionData: null
+      };
+      
+      // Clear messages
+      document.getElementById('messages').innerHTML = '';
+      hideResultsModal();
+      hideQuickOptions();
+      updateSessionStatus('gathering');
+      
+      // Start with first question
+      const firstQ = gatheringQuestions[0];
+      setTimeout(() => {
+        showTypingThenMessage(firstQ.question);
+        document.getElementById('user-input').placeholder = firstQ.placeholder;
+      }, 300);
+    }
+
+    // Event Listeners
+    document.getElementById('send-btn').addEventListener('click', handleUserResponse);
+    
+    document.getElementById('user-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleUserResponse();
+      }
+    });
+    
+    // Auto-resize textarea
+    document.getElementById('user-input').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    
+    document.getElementById('new-session-btn').addEventListener('click', startNewSession);
+    document.getElementById('close-results').addEventListener('click', hideResultsModal);
+    document.getElementById('start-new').addEventListener('click', startNewSession);
+
+    // Data Handler
+    const dataHandler = {
+      onDataChanged(data) {
+        sessions = data;
+      }
+    };
+
+    // Element SDK Handler
+    async function onConfigChange(newConfig) {
+      const title = newConfig.app_title || defaultConfig.app_title;
+      const welcome = newConfig.welcome_message || defaultConfig.welcome_message;
+      const bgColor = newConfig.background_color || defaultConfig.background_color;
+      const surfaceColor = newConfig.surface_color || defaultConfig.surface_color;
+      const textColor = newConfig.text_color || defaultConfig.text_color;
+      const primaryColor = newConfig.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = newConfig.secondary_action_color || defaultConfig.secondary_action_color;
+      const fontFamily = newConfig.font_family || defaultConfig.font_family;
+      const fontSize = newConfig.font_size || defaultConfig.font_size;
+      
+      document.getElementById('app-title').textContent = title;
+      document.getElementById('welcome-text').textContent = welcome;
+      
+      document.body.style.backgroundColor = bgColor;
+      document.body.style.color = textColor;
+      document.body.style.fontFamily = `${fontFamily}, sans-serif`;
+      document.body.style.fontSize = `${fontSize}px`;
+    }
+
+    function mapToCapabilities(cfg) {
+      return {
+        recolorables: [
+          {
+            get: () => cfg.background_color || defaultConfig.background_color,
+            set: (v) => { cfg.background_color = v; if (window.elementSdk) window.elementSdk.setConfig({ background_color: v }); }
+          },
+          {
+            get: () => cfg.surface_color || defaultConfig.surface_color,
+            set: (v) => { cfg.surface_color = v; if (window.elementSdk) window.elementSdk.setConfig({ surface_color: v }); }
+          },
+          {
+            get: () => cfg.text_color || defaultConfig.text_color,
+            set: (v) => { cfg.text_color = v; if (window.elementSdk) window.elementSdk.setConfig({ text_color: v }); }
+          },
+          {
+            get: () => cfg.primary_action_color || defaultConfig.primary_action_color,
+            set: (v) => { cfg.primary_action_color = v; if (window.elementSdk) window.elementSdk.setConfig({ primary_action_color: v }); }
+          },
+          {
+            get: () => cfg.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (v) => { cfg.secondary_action_color = v; if (window.elementSdk) window.elementSdk.setConfig({ secondary_action_color: v }); }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => cfg.font_family || defaultConfig.font_family,
+          set: (v) => { cfg.font_family = v; if (window.elementSdk) window.elementSdk.setConfig({ font_family: v }); }
+        },
+        fontSizeable: {
+          get: () => cfg.font_size || defaultConfig.font_size,
+          set: (v) => { cfg.font_size = v; if (window.elementSdk) window.elementSdk.setConfig({ font_size: v }); }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(cfg) {
+      return new Map([
+        ['app_title', cfg.app_title || defaultConfig.app_title],
+        ['welcome_message', cfg.welcome_message || defaultConfig.welcome_message]
+      ]);
+    }
+
+    // Initialize
+    async function init() {
+      // Initialize Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities,
+          mapToEditPanelValues
+        });
+        config = window.elementSdk.config || defaultConfig;
+      }
+      
+      // Initialize Data SDK
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize data SDK');
+        }
+      }
+      
+      // Apply initial config
+      await onConfigChange(config);
+      
+      // Start the interview
+      startNewSession();
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cd42e2c966aa6bd',t:'MTc3MDk4NDE4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

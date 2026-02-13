@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Prime - AI Architect</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Space Grotesk', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.6); }
+    }
+    
+    @keyframes data-flow {
+      0% { stroke-dashoffset: 100; }
+      100% { stroke-dashoffset: 0; }
+    }
+    
+    @keyframes node-activate {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes scan-line {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+    
+    .active-node { animation: pulse-glow 2s ease-in-out infinite; }
+    .data-path { stroke-dasharray: 10 5; animation: data-flow 1.5s linear infinite; }
+    .node-pulse { animation: node-activate 0.6s ease-out; }
+    
+    .scan-effect::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #a855f7, transparent);
+      animation: scan-line 2s linear infinite;
+    }
+    
+    .glass-panel {
+      background: rgba(20, 14, 47, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+    }
+    
+    .vector-grid {
+      background-image: 
+        linear-gradient(rgba(168, 85, 247, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168, 85, 247, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0f0a1f 0%, #1a1456 50%, #0d0830 100%);
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full text-slate-100 overflow-auto">
+  <div id="app-container" class="h-full w-full vector-grid"><!-- Header -->
+   <header class="glass-panel border-b border-purple-500/20 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+     <div class="flex items-center gap-4">
+      <div class="relative">
+       <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+        <svg class="w-7 h-7 text-slate-950" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+       </div>
+       <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-purple-400 rounded-full animate-pulse"></div>
+      </div>
+      <div>
+       <h1 id="system-title" class="text-xl font-bold text-purple-400">NEXUS PRIME</h1>
+       <p class="text-xs text-slate-400 mono">AI Architect • LangGraph Orchestration</p>
+      </div>
+     </div>
+     <div class="flex items-center gap-3">
+      <div class="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30"><span class="text-xs mono text-purple-400">SYSTEM ACTIVE</span>
+      </div>
+      <div id="session-count" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-purple-500/20"><span class="text-xs mono text-purple-400">Sessions: 0</span>
+      </div>
+     </div>
+    </div>
+   </header>
+   <main class="max-w-7xl mx-auto p-6 space-y-6"><!-- State Machine Visualization -->
+    <section class="glass-panel rounded-2xl p-6 relative overflow-hidden scan-effect">
+     <h2 class="text-lg font-semibold text-purple-400 mb-6 flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg> LangGraph State Machine</h2>
+     <div class="relative h-64 md:h-80">
+      <svg class="absolute inset-0 w-full h-full" viewbox="0 0 800 300"><!-- Connection Paths --> <path id="path-input-nexus" class="data-path" d="M120 150 L250 150" stroke="#a855f7" stroke-width="2" fill="none" opacity="0.5" /> <path id="path-nexus-pass" class="data-path" d="M350 150 L450 80" stroke="#a855f7" stroke-width="2" fill="none" opacity="0.3" /> <path id="path-nexus-fail" class="data-path" d="M350 150 L450 220" stroke="#3b82f6" stroke-width="2" fill="none" opacity="0.3" /> <path id="path-pass-matcher" class="data-path" d="M550 80 L650 80" stroke="#a855f7" stroke-width="2" fill="none" opacity="0.3" /> <path id="path-fail-bridge" class="data-path" d="M550 220 L650 220" stroke="#3b82f6" stroke-width="2" fill="none" opacity="0.3" /> <path id="path-bridge-nexus" class="data-path" d="M650 200 Q700 150 350 170" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="5 5" opacity="0.3" /> <!-- Arrow Markers --> <defs>
+        <marker id="arrowhead" markerwidth="10" markerheight="7" refx="9" refy="3.5" orient="auto">
+         <polygon points="0 0, 10 3.5, 0 7" fill="#a855f7" />
+        </marker>
+       </defs>
+      </svg><!-- State Nodes -->
+      <div class="absolute inset-0 flex items-center justify-around px-4"><!-- Input Node -->
+       <div id="node-input" class="relative group cursor-pointer" onclick="simulateInput()">
+        <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-slate-800 to-blue-900 border-2 border-blue-600 flex items-center justify-center transition-all duration-300 group-hover:border-purple-500 group-hover:shadow-lg group-hover:shadow-purple-500/20">
+         <svg class="w-8 h-8 md:w-10 md:h-10 text-slate-400 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+         </svg>
+        </div>
+        <p class="text-center text-xs mt-2 text-slate-400 font-medium">USER INPUT</p>
+        <div class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-700 border border-blue-600 flex items-center justify-center"><span class="text-[10px] mono text-purple-400">S0</span>
+        </div>
+       </div><!-- Nexus Prime Node -->
+       <div id="node-nexus" class="relative group">
+        <div class="w-28 h-28 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-2 border-purple-500/50 flex flex-col items-center justify-center active-node">
+         <svg class="w-10 h-10 md:w-12 md:h-12 text-purple-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+         </svg><span class="text-[10px] md:text-xs mono text-purple-400 mt-1">NEXUS PRIME</span>
+        </div>
+        <p class="text-center text-xs mt-2 text-purple-400 font-semibold">SKILL GAP ANALYSIS</p>
+        <div class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center"><span class="text-[10px] mono text-purple-400">S1</span>
+        </div>
+       </div><!-- Decision Branch -->
+       <div class="flex flex-col gap-8 md:gap-16"><!-- Pass Route -->
+        <div id="node-pass" class="relative group">
+         <div class="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br from-purple-900/30 to-purple-800/30 border-2 border-purple-500/30 flex items-center justify-center transition-all duration-300">
+          <svg class="w-6 h-6 md:w-8 md:h-8 text-purple-500/70" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+         </div>
+         <p class="text-center text-[10px] md:text-xs mt-1 text-purple-500/70">PASS</p>
+        </div><!-- Fail Route -->
+        <div id="node-fail" class="relative group">
+         <div class="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br from-blue-900/30 to-indigo-800/30 border-2 border-blue-500/30 flex items-center justify-center transition-all duration-300">
+          <svg class="w-6 h-6 md:w-8 md:h-8 text-blue-500/70" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+         </div>
+         <p class="text-center text-[10px] md:text-xs mt-1 text-blue-500/70">GAP FOUND</p>
+        </div>
+       </div><!-- Output Nodes -->
+       <div class="flex flex-col gap-8 md:gap-16"><!-- Matcher -->
+        <div id="node-matcher" class="relative group">
+         <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-purple-800/30 to-violet-800/30 border-2 border-purple-500/30 flex items-center justify-center transition-all duration-300">
+          <svg class="w-8 h-8 md:w-10 md:h-10 text-purple-400/70" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+         </div>
+         <p class="text-center text-[10px] md:text-xs mt-1 text-purple-400/70 font-medium">MATCHER</p>
+         <p class="text-center text-[8px] md:text-[10px] text-slate-500">Project Rec.</p>
+        </div><!-- Bridge -->
+        <div id="node-bridge" class="relative group">
+         <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-blue-800/30 to-indigo-800/30 border-2 border-blue-500/30 flex items-center justify-center transition-all duration-300">
+          <svg class="w-8 h-8 md:w-10 md:h-10 text-blue-400/70" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+         </div>
+         <p class="text-center text-[10px] md:text-xs mt-1 text-blue-400/70 font-medium">BRIDGE</p>
+         <p class="text-center text-[8px] md:text-[10px] text-slate-500">Micro-Burst</p>
+        </div>
+       </div>
+      </div>
+     </div><!-- State Legend -->
+     <div class="flex flex-wrap justify-center gap-4 mt-4 pt-4 border-t border-purple-500/20">
+      <div class="flex items-center gap-2">
+       <div class="w-3 h-3 rounded-full bg-purple-500"></div><span class="text-xs text-slate-400">Active State</span>
+      </div>
+      <div class="flex items-center gap-2">
+       <div class="w-3 h-3 rounded-full bg-blue-500"></div><span class="text-xs text-slate-400">Gap Detected</span>
+      </div>
+      <div class="flex items-center gap-2">
+       <div class="w-3 h-3 rounded-full bg-cyan-500"></div><span class="text-xs text-slate-400">Re-evaluation Loop</span>
+      </div>
+     </div>
+    </section>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><!-- Skill Input Panel -->
+     <section class="glass-panel rounded-2xl p-6">
+      <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+       </svg> Skill Assessment Input</h2>
+      <div class="space-y-4">
+       <div><label class="block text-sm text-slate-400 mb-2">User Skills (comma-separated)</label> <textarea id="skill-input" class="w-full h-24 bg-slate-900/50 border border-purple-600/30 rounded-xl px-4 py-3 text-sm mono text-slate-200 placeholder-slate-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none" placeholder="e.g., Vanilla JS, HTML, CSS Basics, Python Fundamentals"></textarea>
+       </div>
+       <div><label class="block text-sm text-slate-400 mb-2">Target Project Type</label> <select id="project-type" class="w-full bg-slate-900/50 border border-purple-600/30 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-purple-500 focus:outline-none"> <option value="web-app">Web Application</option> <option value="api-integration">API Integration</option> <option value="data-viz">Data Visualization</option> <option value="automation">Automation Script</option> <option value="game-dev">Game Development</option> </select>
+       </div><button id="analyze-btn" onclick="runSkillAnalysis()" class="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg><span>Run Skill Analysis</span> </button>
+      </div>
+     </section><!-- Vector Store Visualization -->
+     <section class="glass-panel rounded-2xl p-6">
+      <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+       </svg> Vector Store (FAISS/ChromaDB Sim)</h2>
+      <div id="vector-display" class="space-y-3 max-h-64 overflow-y-auto pr-2">
+       <div class="text-sm text-slate-500 text-center py-8">
+        <svg class="w-12 h-12 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg> Run analysis to see vector mappings
+       </div>
+      </div>
+     </section>
+    </div><!-- Analysis Results -->
+    <section id="results-section" class="glass-panel rounded-2xl p-6 hidden">
+     <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg> Analysis Results</h2>
+     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-slate-900/50 rounded-xl p-4 border border-purple-600/20">
+       <p class="text-xs text-slate-400 mb-1">Skill Match Score</p>
+       <p id="match-score" class="text-3xl font-bold text-purple-400">--</p>
+      </div>
+      <div class="bg-slate-900/50 rounded-xl p-4 border border-purple-600/20">
+       <p class="text-xs text-slate-400 mb-1">Route Decision</p>
+       <p id="route-decision" class="text-xl font-semibold text-cyan-400">--</p>
+      </div>
+      <div class="bg-slate-900/50 rounded-xl p-4 border border-purple-600/20">
+       <p class="text-xs text-slate-400 mb-1">Current State</p>
+       <p id="current-state" class="text-xl font-semibold mono text-blue-400">--</p>
+      </div>
+     </div>
+     <div id="gap-analysis" class="mt-4 p-4 bg-slate-900/50 rounded-xl border border-blue-600/20 hidden">
+      <p class="text-sm font-semibold text-blue-400 mb-2">📚 Skill Gaps Identified:</p>
+      <ul id="gap-list" class="text-sm text-slate-300 space-y-1"></ul>
+     </div>
+     <div id="micro-burst-section" class="mt-4 hidden">
+      <div class="p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl border border-blue-500/30">
+       <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-semibold text-blue-400">🎯 Micro-Burst Education Path</p><span id="progress-badge" class="px-2 py-1 bg-blue-500/20 rounded text-xs mono text-blue-400">0%</span>
+       </div>
+       <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500" style="width: 0%"></div>
+       </div>
+       <div id="burst-modules" class="mt-3 space-y-2"></div>
+      </div>
+     </div>
+    </section><!-- Session History -->
+    <section class="glass-panel rounded-2xl p-6">
+     <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg> Session History (AgentState Persistence)</h2>
+     <div id="session-history" class="space-y-3 max-h-64 overflow-y-auto">
+      <div class="text-sm text-slate-500 text-center py-6">
+       No sessions recorded yet
+      </div>
+     </div>
+    </section>
+   </main>
+  </div>
+  <script>
+    // Default configuration
+    const defaultConfig = {
+      system_title: 'NEXUS PRIME',
+      pass_threshold: '75%',
+      background_color: '#0f0a1f',
+      accent_color: '#a855f7',
+      text_color: '#e2e8f0',
+      surface_color: '#140e2f',
+      highlight_color: '#3b82f6'
+    };
+
+    // Vector store simulation - maps skills to project requirements
+    const skillVectorStore = {
+      'vanilla js': { vector: [0.9, 0.2, 0.1, 0.3, 0.5], maps_to: 'Logic Scripting', category: 'frontend' },
+      'javascript': { vector: [0.95, 0.3, 0.2, 0.4, 0.6], maps_to: 'Logic Scripting', category: 'frontend' },
+      'html': { vector: [0.3, 0.9, 0.1, 0.1, 0.2], maps_to: 'Structure & Markup', category: 'frontend' },
+      'css': { vector: [0.2, 0.8, 0.1, 0.1, 0.3], maps_to: 'Visual Styling', category: 'frontend' },
+      'css basics': { vector: [0.15, 0.6, 0.05, 0.05, 0.2], maps_to: 'Visual Styling', category: 'frontend' },
+      'python': { vector: [0.1, 0.1, 0.9, 0.7, 0.4], maps_to: 'Backend Logic', category: 'backend' },
+      'python fundamentals': { vector: [0.08, 0.08, 0.7, 0.5, 0.3], maps_to: 'Backend Logic', category: 'backend' },
+      'react': { vector: [0.85, 0.3, 0.1, 0.2, 0.7], maps_to: 'Component Architecture', category: 'frontend' },
+      'node.js': { vector: [0.4, 0.1, 0.8, 0.6, 0.5], maps_to: 'Server Runtime', category: 'backend' },
+      'api design': { vector: [0.3, 0.1, 0.7, 0.9, 0.4], maps_to: 'Data Integration', category: 'backend' },
+      'sql': { vector: [0.1, 0.05, 0.5, 0.8, 0.2], maps_to: 'Data Management', category: 'data' },
+      'data visualization': { vector: [0.4, 0.6, 0.3, 0.5, 0.8], maps_to: 'Visual Analytics', category: 'data' },
+      'git': { vector: [0.2, 0.1, 0.3, 0.2, 0.4], maps_to: 'Version Control', category: 'tools' },
+      'typescript': { vector: [0.88, 0.25, 0.15, 0.35, 0.65], maps_to: 'Type-Safe Scripting', category: 'frontend' }
+    };
+
+    // Project requirements
+    const projectRequirements = {
+      'web-app': ['Logic Scripting', 'Structure & Markup', 'Visual Styling', 'Component Architecture'],
+      'api-integration': ['Logic Scripting', 'Backend Logic', 'Data Integration', 'Server Runtime'],
+      'data-viz': ['Logic Scripting', 'Visual Styling', 'Visual Analytics', 'Data Management'],
+      'automation': ['Backend Logic', 'Data Management', 'Server Runtime'],
+      'game-dev': ['Logic Scripting', 'Visual Styling', 'Component Architecture', 'Type-Safe Scripting']
+    };
+
+    // Micro-burst modules for skill gaps
+    const microBurstModules = {
+      'Logic Scripting': [
+        { title: 'Variables & Data Types', duration: '5 min' },
+        { title: 'Control Flow Basics', duration: '8 min' },
+        { title: 'Functions & Scope', duration: '10 min' }
+      ],
+      'Component Architecture': [
+        { title: 'Component Thinking', duration: '6 min' },
+        { title: 'State Management Basics', duration: '12 min' },
+        { title: 'Props & Events', duration: '8 min' }
+      ],
+      'Data Integration': [
+        { title: 'REST API Concepts', duration: '7 min' },
+        { title: 'Fetch & Async/Await', duration: '10 min' },
+        { title: 'Error Handling', duration: '5 min' }
+      ],
+      'Backend Logic': [
+        { title: 'Server Concepts', duration: '8 min' },
+        { title: 'Route Handling', duration: '10 min' },
+        { title: 'Middleware Basics', duration: '7 min' }
+      ],
+      'Visual Analytics': [
+        { title: 'Chart Types Overview', duration: '5 min' },
+        { title: 'Data Transformation', duration: '8 min' },
+        { title: 'Interactive Elements', duration: '10 min' }
+      ]
+    };
+
+    let sessions = [];
+    let currentSession = null;
+    let recordCount = 0;
+
+    // Data handler for persistence
+    const dataHandler = {
+      onDataChanged(data) {
+        sessions = data;
+        recordCount = data.length;
+        renderSessionHistory();
+        updateSessionCount();
+      }
+    };
+
+    // Initialize SDKs
+    async function initApp() {
+      // Initialize Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            applyConfig(config);
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); }
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); }
+              },
+              {
+                get: () => config.accent_color || defaultConfig.accent_color,
+                set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); }
+              },
+              {
+                get: () => config.highlight_color || defaultConfig.highlight_color,
+                set: (v) => { config.highlight_color = v; window.elementSdk.setConfig({ highlight_color: v }); }
+              }
+            ],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['system_title', config.system_title || defaultConfig.system_title],
+            ['pass_threshold', config.pass_threshold || defaultConfig.pass_threshold]
+          ])
+        });
+      }
+
+      // Initialize Data SDK
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize Data SDK');
+        }
+      }
+
+      applyConfig(defaultConfig);
+    }
+
+    function applyConfig(config) {
+      const title = config.system_title || defaultConfig.system_title;
+      const bg = config.background_color || defaultConfig.background_color;
+      const surface = config.surface_color || defaultConfig.surface_color;
+      const text = config.text_color || defaultConfig.text_color;
+      const accent = config.accent_color || defaultConfig.accent_color;
+      
+      document.getElementById('system-title').textContent = title;
+      document.body.style.backgroundColor = bg;
+      
+      document.querySelectorAll('.glass-panel').forEach(el => {
+        el.style.backgroundColor = surface + 'e6';
+        el.style.borderColor = accent + '33';
+      });
+    }
+
+    function updateSessionCount() {
+      document.getElementById('session-count').innerHTML = 
+        `<span class="text-xs mono text-purple-400">Sessions: ${recordCount}</span>`;
+    }
+
+    function generateSessionId() {
+      return 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    }
+
+    function parseSkills(skillString) {
+      return skillString.toLowerCase().split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function computeVectorSimilarity(vec1, vec2) {
+      let dot = 0, mag1 = 0, mag2 = 0;
+      for (let i = 0; i < vec1.length; i++) {
+        dot += vec1[i] * vec2[i];
+        mag1 += vec1[i] * vec1[i];
+        mag2 += vec2[i] * vec2[i];
+      }
+      return dot / (Math.sqrt(mag1) * Math.sqrt(mag2));
+    }
+
+    function mapSkillsToVectors(skills) {
+      const mappings = [];
+      skills.forEach(skill => {
+        const match = skillVectorStore[skill];
+        if (match) {
+          mappings.push({
+            skill: skill,
+            vector: match.vector,
+            maps_to: match.maps_to,
+            category: match.category,
+            confidence: 0.85 + Math.random() * 0.15
+          });
+        } else {
+          // Fuzzy match attempt
+          const keys = Object.keys(skillVectorStore);
+          const fuzzy = keys.find(k => k.includes(skill) || skill.includes(k));
+          if (fuzzy) {
+            const m = skillVectorStore[fuzzy];
+            mappings.push({
+              skill: skill,
+              vector: m.vector,
+              maps_to: m.maps_to,
+              category: m.category,
+              confidence: 0.6 + Math.random() * 0.2
+            });
+          }
+        }
+      });
+      return mappings;
+    }
+
+    function analyzeSkillGaps(mappings, projectType) {
+      const requirements = projectRequirements[projectType] || [];
+      const coveredSkills = mappings.map(m => m.maps_to);
+      const gaps = requirements.filter(req => !coveredSkills.includes(req));
+      
+      const coverageScore = ((requirements.length - gaps.length) / requirements.length) * 100;
+      
+      return {
+        gaps,
+        coverageScore: Math.round(coverageScore),
+        requirements,
+        covered: coveredSkills.filter(s => requirements.includes(s))
+      };
+    }
+
+    function renderVectorDisplay(mappings) {
+      const container = document.getElementById('vector-display');
+      
+      if (mappings.length === 0) {
+        container.innerHTML = `
+          <div class="text-sm text-blue-400 text-center py-4">
+            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            No skill vectors found in input
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = mappings.map(m => `
+        <div class="bg-slate-900/50 rounded-lg p-3 border border-purple-600/20 hover:border-purple-500/50 transition-colors">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-slate-200 capitalize">${m.skill}</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-${m.category === 'frontend' ? 'purple' : m.category === 'backend' ? 'blue' : 'cyan'}-500/20 text-${m.category === 'frontend' ? 'purple' : m.category === 'backend' ? 'blue' : 'cyan'}-400">${m.category}</span>
+          </div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs text-slate-500">→</span>
+            <span class="text-xs mono text-purple-400">${m.maps_to}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-[10px] text-slate-500 mono">vec:</span>
+            <div class="flex gap-0.5">
+              ${m.vector.map(v => `<div class="w-4 h-4 rounded text-[8px] flex items-center justify-center bg-purple-500/${Math.round(v * 40) + 10} text-purple-${v > 0.5 ? '300' : '600'}">${v.toFixed(1)}</div>`).join('')}
+            </div>
+            <span class="text-[10px] text-slate-400 ml-2">${Math.round(m.confidence * 100)}% conf</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function activateNode(nodeId, isPass = true) {
+      // Reset all nodes
+      ['node-input', 'node-nexus', 'node-pass', 'node-fail', 'node-matcher', 'node-bridge'].forEach(id => {
+        const node = document.getElementById(id);
+        if (node) {
+          node.querySelector('div').classList.remove('node-pulse', 'active-node');
+        }
+      });
+      
+      // Activate specific node
+      const targetNode = document.getElementById(nodeId);
+      if (targetNode) {
+        targetNode.querySelector('div').classList.add('node-pulse', 'active-node');
+      }
+      
+      // Update paths
+      const passPath = document.getElementById('path-nexus-pass');
+      const failPath = document.getElementById('path-nexus-fail');
+      const matcherPath = document.getElementById('path-pass-matcher');
+      const bridgePath = document.getElementById('path-fail-bridge');
+      
+      if (isPass) {
+        passPath.style.opacity = '1';
+        passPath.style.stroke = '#a855f7';
+        matcherPath.style.opacity = '1';
+        failPath.style.opacity = '0.2';
+        bridgePath.style.opacity = '0.2';
+      } else {
+        failPath.style.opacity = '1';
+        failPath.style.stroke = '#3b82f6';
+        bridgePath.style.opacity = '1';
+        passPath.style.opacity = '0.2';
+        matcherPath.style.opacity = '0.2';
+      }
+    }
+
+    function simulateInput() {
+      activateNode('node-input', true);
+      setTimeout(() => activateNode('node-nexus', true), 300);
+    }
+
+    async function runSkillAnalysis() {
+      const skillInput = document.getElementById('skill-input').value;
+      const projectType = document.getElementById('project-type').value;
+      
+      if (!skillInput.trim()) {
+        // Show inline error instead of alert
+        const btn = document.getElementById('analyze-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="text-red-300">Please enter skills first</span>';
+        btn.classList.add('bg-red-600/50');
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.classList.remove('bg-red-600/50');
+        }, 2000);
+        return;
+      }
+      
+      // Show loading state
+      const btn = document.getElementById('analyze-btn');
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span>Analyzing...</span>
+      `;
+      
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const skills = parseSkills(skillInput);
+      const mappings = mapSkillsToVectors(skills);
+      const analysis = analyzeSkillGaps(mappings, projectType);
+      
+      // Render vector display
+      renderVectorDisplay(mappings);
+      
+      // Show results
+      const resultsSection = document.getElementById('results-section');
+      resultsSection.classList.remove('hidden');
+      
+      document.getElementById('match-score').textContent = analysis.coverageScore + '%';
+      
+      const isPass = analysis.coverageScore >= 75;
+      const routeDecision = isPass ? 'PASS → Matcher' : 'FAIL → Bridge';
+      const currentState = isPass ? 'S2_MATCHED' : 'S3_LEARNING';
+      
+      document.getElementById('route-decision').textContent = routeDecision;
+      document.getElementById('route-decision').className = `text-xl font-semibold ${isPass ? 'text-purple-400' : 'text-blue-400'}`;
+      document.getElementById('current-state').textContent = currentState;
+      
+      // Activate appropriate nodes
+      activateNode(isPass ? 'node-pass' : 'node-fail', isPass);
+      setTimeout(() => activateNode(isPass ? 'node-matcher' : 'node-bridge', isPass), 500);
+      
+      // Show gap analysis if needed
+      const gapSection = document.getElementById('gap-analysis');
+      const microBurstSection = document.getElementById('micro-burst-section');
+      
+      if (analysis.gaps.length > 0) {
+        gapSection.classList.remove('hidden');
+        document.getElementById('gap-list').innerHTML = analysis.gaps.map(gap => 
+          `<li class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            <span>${gap}</span>
+          </li>`
+        ).join('');
+        
+        // Show micro-burst modules
+        microBurstSection.classList.remove('hidden');
+        renderMicroBurstModules(analysis.gaps);
+      } else {
+        gapSection.classList.add('hidden');
+        microBurstSection.classList.add('hidden');
+      }
+      
+      // Save session to Data SDK
+      await saveSession({
+        skills: skillInput,
+        projectType,
+        mappings,
+        analysis,
+        isPass,
+        routeDecision,
+        currentState
+      });
+      
+      // Reset button
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+        <span>Run Skill Analysis</span>
+      `;
+    }
+
+    function renderMicroBurstModules(gaps) {
+      const container = document.getElementById('burst-modules');
+      let allModules = [];
+      
+      gaps.forEach(gap => {
+        const modules = microBurstModules[gap];
+        if (modules) {
+          allModules = allModules.concat(modules.map(m => ({ ...m, skill: gap })));
+        }
+      });
+      
+      container.innerHTML = allModules.slice(0, 5).map((m, i) => `
+        <div class="flex items-center justify-between p-2 bg-slate-900/50 rounded-lg border border-blue-600/20">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] flex items-center justify-center">${i + 1}</span>
+            <div>
+              <p class="text-xs text-slate-200">${m.title}</p>
+              <p class="text-[10px] text-slate-500">${m.skill}</p>
+            </div>
+          </div>
+          <span class="text-[10px] mono text-slate-400">${m.duration}</span>
+        </div>
+      `).join('');
+    }
+
+    async function saveSession(data) {
+      if (!window.dataSdk) return;
+      
+      if (recordCount >= 999) {
+        // Show limit warning inline
+        const container = document.getElementById('session-history');
+        const warning = document.createElement('div');
+        warning.className = 'p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-sm text-red-400 mb-3';
+        warning.textContent = 'Session limit reached (999). Please delete old sessions to save new ones.';
+        container.prepend(warning);
+        setTimeout(() => warning.remove(), 5000);
+        return;
+      }
+      
+      const session = {
+        session_id: generateSessionId(),
+        user_skills: data.skills,
+        skill_vectors: JSON.stringify(data.mappings.map(m => ({ skill: m.skill, maps_to: m.maps_to }))),
+        gap_analysis: JSON.stringify(data.analysis.gaps),
+        route_decision: data.routeDecision,
+        current_state: data.currentState,
+        micro_burst_progress: data.isPass ? 100 : 0,
+        timestamp: new Date().toISOString()
+      };
+      
+      const result = await window.dataSdk.create(session);
+      if (!result.isOk) {
+        console.error('Failed to save session');
+      }
+    }
+
+    function renderSessionHistory() {
+      const container = document.getElementById('session-history');
+      
+      if (sessions.length === 0) {
+        container.innerHTML = `
+          <div class="text-sm text-slate-500 text-center py-6">
+            No sessions recorded yet
+          </div>
+        `;
+        return;
+      }
+      
+      const sortedSessions = [...sessions].sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      
+      container.innerHTML = sortedSessions.map(s => {
+        const isPass = s.route_decision.includes('PASS');
+        const gaps = JSON.parse(s.gap_analysis || '[]');
+        const date = new Date(s.timestamp);
+        
+        return `
+          <div class="p-4 bg-slate-900/50 rounded-xl border border-purple-600/20 hover:border-${isPass ? 'purple' : 'blue'}-500/30 transition-colors">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs mono text-slate-500">${s.session_id}</span>
+              <span class="text-xs text-slate-500">${date.toLocaleString()}</span>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="px-2 py-0.5 rounded text-xs ${isPass ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}">
+                ${s.route_decision}
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-300 mono">
+                ${s.current_state}
+              </span>
+            </div>
+            <p class="text-sm text-slate-300 truncate">${s.user_skills}</p>
+            ${gaps.length > 0 ? `<p class="text-xs text-blue-400 mt-1">Gaps: ${gaps.join(', ')}</p>` : ''}
+            <div class="mt-2 flex items-center justify-between">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-500">Progress:</span>
+                <div class="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-purple-500 to-blue-500" style="width: ${s.micro_burst_progress}%"></div>
+                </div>
+                <span class="text-[10px] text-slate-400">${s.micro_burst_progress}%</span>
+              </div>
+              <button onclick="deleteSession('${s.__backendId}')" class="text-xs text-red-400 hover:text-red-300 transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function deleteSession(backendId) {
+      if (!window.dataSdk) return;
+      
+      const session = sessions.find(s => s.__backendId === backendId);
+      if (!session) return;
+      
+      const result = await window.dataSdk.delete(session);
+      if (!result.isOk) {
+        console.error('Failed to delete session');
+      }
+    }
+
+    // Initialize on load
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cca163d10fe17d7',t:'MTc3MDg3ODM0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
